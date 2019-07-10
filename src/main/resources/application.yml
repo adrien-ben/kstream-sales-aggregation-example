@@ -1,0 +1,17 @@
+app:
+  window:
+    duration: 0
+
+spring:
+  application:
+    name: kstream-sales-aggregation-example
+  kafka:
+    streams:
+      state-dir: ./target/kstream-statestore
+      properties:
+        commit.interval.ms: 100
+        default.deserialization.exception.handler: org.apache.kafka.streams.errors.LogAndContinueExceptionHandler
+
+logging:
+  level:
+    org.springframework.kafka: DEBUG
