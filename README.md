@@ -53,4 +53,22 @@ gets closed. The output message will also contain the start and end date/time of
 
 ![Non windowed topology](windowed_topology.png)
 
+## Run application
+
+```sh
+# Run app
+./mvnw spring-boot:run
+
+# Run tests (note the clean to ensure the state store is cleaned up)
+./mvnw clean test
+```
+
+You will also need a running Kafka instance. If you have docker installed this project has a
+docker-compose file that starts a zookeeper, a kafka broker and kafkahq which is a nice ui
+that ease the interaction with the kafka broker and that you can access at localhost:8090.
+
+```sh
+docker-compose up -d
+```
+
 [0]: https://docs.confluent.io/current/streams/developer-guide/dsl-api.html#window-final-results
