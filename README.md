@@ -1,4 +1,6 @@
-# Kafka Stream Aggregation Sample
+# Kafka Stream Sales Aggregation Example
+
+[![Build Status](https://travis-ci.com/adrien-ben/kstream-sales-aggregation-example.svg?branch=master)](https://travis-ci.com/adrien-ben/kstream-sales-aggregation-example)
 
 A simple application written in Kotlin using Spring and Kafka Stream to aggregate the data of a topic.
 
