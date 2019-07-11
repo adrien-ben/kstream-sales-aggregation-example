@@ -67,13 +67,24 @@ public class StreamConfig {
 
 	@Bean
 	public KStream<String, Sales> kStream(StreamsBuilder streamBuilder) {
+		// First we stream the sales records and group them by key
 		var salesByShop = streamBuilder.stream(SALES_TOPIC, saleConsumed).groupByKey();
+		// Then we aggregate them.
+		// The aggregation is performed differently according to the `app.window.duration` parameter
+		// Either it is set to 0 and we aggregate them indefinitely
+		// Or not and they are aggregated only in a time window
+		// Check the aggregate function below for more details
 		var aggregatedSalesByShop = aggregate(salesByShop);
+		// Finally we just send the aggregated results to Kafka
 		aggregatedSalesByShop.to(AGGREGATED_SALES_TOPIC, salesProduced);
 		return aggregatedSalesByShop;
 	}
 
 	private KStream<String, Sales> aggregate(KGroupedStream<String, Sale> salesByShop) {
+
+		// If no window in configured then we perform a regular aggregation
+		// We just store the aggregated amount in the state store
+		// When we aggregate this way intermediate results will be sent to Kafka regularly
 		if (windowDuration.isZero()) {
 			return salesByShop
 					.aggregate(this::initialize, this::aggregateAmount, materializedAsPersistentStore(AMOUNT_STORE_NAME, stringSerde, floatSerde))
@@ -81,6 +92,14 @@ public class StreamConfig {
 					.mapValues(Sales::new);
 		}
 
+		// Now if we have a window configured we aggregate sales contained in a time window
+		// - First we need to window the incoming records. We use a time window which is a fixed-size window.
+		// - Then we aggregate the records. Here we use a different materialized that relies on a WindowStore
+		// rather than a regular KeyValueStore.
+		// - Here we only want the final aggregation of each period to be send to Kakfa. To do
+		// that we use the suppress method and tell it to suppress all records until the window closes.
+		// - Then we just need to map the key before sending to Kafka because the windowing operation changed
+		// it into a windowed key. We also inject the window start and end timestamps into the final record.
 		return salesByShop.windowedBy(TimeWindows.of(windowDuration).grace(Duration.ZERO))
 				.aggregate(this::initialize, this::aggregateAmount, materializedAsWindowStore(WINDOWED_AMOUNT_STORE_NAME, stringSerde, floatSerde))
 				.suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded()).withName(WINDOWED_AMOUNT_SUPPRESS_NODE_NAME))
